@@ -1,13 +1,13 @@
 /** @file
   Interfejs klasy wielomianów rzadkich wielu zmiennych
 
-  @authors Jakub Pawlewicz <pan@mimuw.edu.pl>, Marcin Peczarski <marpe@mimuw.edu.pl>
+  @authors Jakub Pawlewicz <pan@mimuw.edu.pl>, Marcin Peczarski <marpe@mimuw.edu.pl>, Błażej Wilkoławski
   @copyright Uniwersytet Warszawski
   @date 2021
 */
 
-#ifndef __POLY_H__
-#define __POLY_H__
+#ifndef POLYNOMIALS_POLY_H
+#define POLYNOMIALS_POLY_H
 
 #include <assert.h>
 #include <stdbool.h>
@@ -149,6 +149,18 @@ static inline Mono MonoClone(const Mono *m) {
 Poly PolyAdd(const Poly *p, const Poly *q);
 
 /**
+ * Sumuje listę jednomianów i tworzy z nich wielomian. Przejmuje na własność
+ * pamięć wskazywaną przez @p monos i jej zawartość. Może dowolnie modyfikować
+ * zawartość tej pamięci. Zakładamy, że pamięć wskazywana przez @p monos
+ * została zaalokowana na stercie. Jeśli @p count lub @p monos jest równe zeru
+ * (NULL), tworzy wielomian tożsamościowo równy zeru.
+ * @param[in] count : liczba jednomianów
+ * @param[in] monos : tablica jednomianów
+ * @return wielomian będący sumą jednomianów
+ */
+Poly PolyOwnMonos(size_t count, Mono *monos);
+
+/**
  * Sumuje listę jednomianów i tworzy z nich wielomian.
  * Przejmuje na własność zawartość tablicy @p monos.
  * @param[in] count : liczba jednomianów
@@ -156,6 +168,17 @@ Poly PolyAdd(const Poly *p, const Poly *q);
  * @return wielomian będący sumą jednomianów
  */
 Poly PolyAddMonos(size_t count, const Mono monos[]);
+
+/**
+ * Sumuje listę jednomianów i tworzy z nich wielomian. Nie modyfikuje zawartości
+ * tablicy @p monos. Jeśli jest to wymagane, to wykonuje pełne kopie jednomianów
+ * z tablicy @p monos. Jeśli @p count lub @p monos jest równe zeru (NULL),
+ * tworzy wielomian tożsamościowo równy zeru.
+ * @param[in] count : liczba jednomianów
+ * @param[in] monos : tablica jednomianów
+ * @return wielomian będący sumą jednomianów
+ */
+Poly PolyCloneMonos(size_t count, const Mono monos[]);
 
 /**
  * Mnoży wielomian przez współczynnik liczbowy.
@@ -172,6 +195,26 @@ Poly PolyMulByCoeff(const Poly *p, poly_coeff_t coeff);
  * @return @f$p \cdot q@f$
  */
 Poly PolyMul(const Poly *p, const Poly *q);
+
+/**
+ * Podnosi wielomian do całkowitej potęgi.
+ * @param[in] p : wielomian @f$p@f$
+ * @param[in] n : wykładnik potęgi @f$n@f$
+ * @return @f$p^n@f$
+ */
+Poly PolyPow(const Poly *p, poly_exp_t n);
+
+/**
+ * Wykonuje operację składania wielomianów. Wynikiem złożenia jest
+ * @f$p(q_0, q_1, ..., q_{k - 1}, 0, 0, ...)@f$, czyli wielomian
+ * powstający przez podstawienie w wielomianie @f$p@f$ pod zmienną @f$x_i@f$
+ * wielomianu @f$q_i@f$. Dla indeksów większych od @f$k@f$ podstawiamy 0.
+ * @param[in] p : wielomian @f$p@f$
+ * @param[in] k : liczba wielomianów do podstawienia
+ * @param[in] q : lista wielomianów do podstawienia
+ * @return @f$p(q_0, q_1, ..., q_{k - 1}, 0, 0, ...)@f$
+ */
+Poly PolyCompose(const Poly *p, size_t k, const Poly q[]);
 
 /**
  * Zwraca przeciwny wielomian.
@@ -234,4 +277,4 @@ Poly PolyAt(const Poly *p, poly_coeff_t x);
  */
 void PolyPrint(const Poly *p);
 
-#endif /* __POLY_H__ */
+#endif /* POLYNOMIALS_POLY_H */

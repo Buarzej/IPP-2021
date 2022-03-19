@@ -8,16 +8,20 @@
 #ifndef POLYNOMIALS_STACK_H
 #define POLYNOMIALS_STACK_H
 
+#include <stdlib.h>
 #include "poly.h"
+
+/** Mnożnik aktualnego rozmiaru tablicy stosu przy realokacji. */
+#define STACK_REALLOC_MULTIPLIER 2
 
 /**
  * Struktura przechowująca stos wielomianów.
- * Jeśli `top == -1`, stos jest pusty. Tablica przechowująca elementy
- * stosu jest automatycznie realokowana w razie potrzeby.
+ * Tablica przechowująca elementy stosu jest
+ * automatycznie realokowana w razie potrzeby.
  */
 typedef struct Stack {
-    int top; ///< indeks najwyższego elementu
-    int arraySize; ///< rozmiar alokacji tablicy z elementami stosu
+    size_t top; ///< liczba elementów wrzuconych na stos
+    size_t arraySize; ///< rozmiar alokacji tablicy z elementami stosu
     Poly* array; ///< tablica przechowująca elementy stosu
 } Stack;
 
@@ -26,8 +30,8 @@ typedef struct Stack {
  * @param[in] stack : stos
  * @return Czy stos jest pusty?
  */
-static inline bool StackIsEmpty(Stack *stack) {
-    return stack->top == -1;
+static inline bool StackIsEmpty(const Stack *stack) {
+    return stack->top == 0;
 }
 
 /**
@@ -36,8 +40,8 @@ static inline bool StackIsEmpty(Stack *stack) {
  * @param[in] stack : stos
  * @return Czy stos jest zapełniony?
  */
-static inline bool StackIsFull(Stack *stack) {
-    return stack->top == stack->arraySize - 1;
+static inline bool StackIsFull(const Stack *stack) {
+    return stack->top == stack->arraySize;
 }
 
 /**
@@ -46,8 +50,8 @@ static inline bool StackIsFull(Stack *stack) {
  * @param[in] n : liczba elementów
  * @return Czy stos zawiera co najmniej @p n elementów?
  */
-static inline bool StackHasNItems(Stack *stack, int n) {
-    return stack->top >= n - 1;
+static inline bool StackHasNItems(const Stack *stack, size_t n) {
+    return stack->top >= n;
 }
 
 /**
@@ -55,34 +59,63 @@ static inline bool StackHasNItems(Stack *stack, int n) {
  * @param[in] size : początkowy rozmiar tablicy
  * @return pusty stos
  */
-Stack StackCreate(int size);
+static inline Stack StackCreate(size_t size) {
+    Stack stack;
+    stack.top = 0;
+    stack.arraySize = size;
+    stack.array = (Poly *) malloc(stack.arraySize * sizeof(Poly));
+
+    // Sprawdzenie poprawności alokacji.
+    if (stack.array == NULL) exit(1);
+    return stack;
+}
 
 /**
  * Usuwa stos i wszystkie jego elementy z pamięci.
  * @param[in] stack : stos
  */
-void StackDestroy(Stack *stack);
+static inline void StackDestroy(const Stack *stack) {
+    for (size_t i = 0; i < stack->top; i++)
+        PolyDestroy(&stack->array[i]);
+    free(stack->array);
+}
 
 /**
  * Dodaje wielomian @p p na wierzch stosu.
  * @param[in] stack : stos
  * @param[in] p : wielomian
  */
-void StackPush(Stack *stack, Poly p);
+static inline void StackPush(Stack *stack, Poly p) {
+    stack->array[stack->top++] = p;
+
+    if (StackIsFull(stack)) {
+        stack->arraySize *= STACK_REALLOC_MULTIPLIER;
+        stack->array = (Poly *) realloc(stack->array,
+                                        stack->arraySize * sizeof(Poly));
+        if (stack->array == NULL)
+            exit(1);
+    }
+}
 
 /**
  * Zwraca i usuwa wielomian z wierzchu niepustego stosu.
  * @param[in] stack : stos
  * @return usunięty wielomian
  */
-Poly StackPop(Stack *stack);
+static inline Poly StackPop(Stack *stack) {
+    assert(!StackIsEmpty(stack));
+    return stack->array[--stack->top];
+}
 
 /**
  * Zwraca wielomian z wierzchu niepustego stosu.
  * @param[in] stack : stos
  * @return wielomian z wierzchu stosu
  */
-Poly StackTop(Stack *stack);
+static inline Poly StackTop(const Stack *stack) {
+    assert(!StackIsEmpty(stack));
+    return stack->array[stack->top - 1];
+}
 
 /**
  * Zwraca wielomian znajdujący się pod wierzchołkiem stosu
@@ -90,6 +123,9 @@ Poly StackTop(Stack *stack);
  * @param[in] stack : stos
  * @return wielomian pod wierzchołkiem stosu
  */
-Poly StackSecond(Stack *stack);
+static inline Poly StackSecond(const Stack *stack) {
+    assert(StackHasNItems(stack, 2));
+    return stack->array[stack->top - 2];
+}
 
 #endif //POLYNOMIALS_STACK_H

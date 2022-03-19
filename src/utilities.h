@@ -80,6 +80,17 @@ static inline Mono *SafeMonoMalloc(size_t size) {
 }
 
 /**
+ * Bezpieczna alokacja pamięci tablicy wielomianów.
+ * @param[in] size : rozmiar tablicy do zaalokowania
+ * @return zaalokowana tablica
+ */
+static inline Poly *SafePolyMalloc(size_t size) {
+    Poly *allocated = malloc(size * sizeof(Poly));
+    if (allocated == NULL) exit(1);
+    return allocated;
+}
+
+/**
  * Bezpieczna realokacja pamięci tablicy jednomianów.
  * @param[in] toRealloc : tablica do realokacji
  * @param[in,out] currSize : wskaźnik na aktualny rozmiar tablicy

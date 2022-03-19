@@ -149,47 +149,35 @@ Poly PolyAdd(const Poly *p, const Poly *q) {
     return PolyAddNotCoeffs(p, q);
 }
 
-Poly PolyAddMonos(size_t count, const Mono monos[]) {
-    if (count == 0)
-        return PolyZero();
-
-    // Robimy płytką kopię tablicy monos[] w celu jej posortowania.
-    Mono *monosCopy = SafeMonoMalloc(count);
-    size_t newCount = 0;
-    for (size_t i = 0; i < count; i++)
-        // Pomijamy jednomiany tożsamościowo równe zero.
-        if (!PolyIsZero(&monos[i].p))
-            monosCopy[newCount++] = monos[i];
-
-
-    // Jeśli wszystkie jednomiany się skróciły, zwracamy wielomian zerowy.
-    if (newCount == 0) {
-        free(monosCopy);
+Poly PolyOwnMonos(size_t count, Mono *monos) {
+    if (count == 0) {
+        if (monos != NULL)
+            free(monos);
         return PolyZero();
     }
 
     // Sortujemy tablicę względem wykładników jednomianów.
-    qsort(monosCopy, newCount, sizeof(Mono), compareMonos);
+    qsort(monos, count, sizeof(Mono), compareMonos);
 
-    Mono *resultMonos = SafeMonoMalloc(newCount);
+    Mono *resultMonos = SafeMonoMalloc(count);
     size_t index = 0;
-    resultMonos[index] = monosCopy[0];
+    resultMonos[index] = monos[0];
 
     // Przechodzimy po posortowanej tablicy, sumując współczynniki
     // przy jednomianach o tym samym wykładniku.
-    for (size_t i = 1; i < newCount; i++) {
-        if (resultMonos[index].exp == monosCopy[i].exp) {
+    for (size_t i = 1; i < count; i++) {
+        if (resultMonos[index].exp == monos[i].exp) {
             // Brak zmiany wykładnika, sumujemy współczynniki.
             Poly currPoly = resultMonos[index].p;
-            resultMonos[index].p = PolyAdd(&currPoly, &monosCopy[i].p);
-            MonoDestroy(&monosCopy[i]);
+            resultMonos[index].p = PolyAdd(&currPoly, &monos[i].p);
+            MonoDestroy(&monos[i]);
             PolyDestroy(&currPoly);
         } else {
             // Przy zmianie wykładnika zapisujemy zsumowane współczynniki
             // do tablicy wynikowej, przy czym nadpisujemy jednomiany zerowe.
             if (!PolyIsZero(&resultMonos[index].p))
                 index++;
-            resultMonos[index] = monosCopy[i];
+            resultMonos[index] = monos[i];
         }
     }
 
@@ -197,7 +185,7 @@ Poly PolyAddMonos(size_t count, const Mono monos[]) {
     if (!PolyIsZero(&resultMonos[index].p))
         index++;
 
-    free(monosCopy);
+    free(monos);
     size_t resultSize = index;
 
     // Jeśli wszystkie jednomiany się skróciły, zwracamy wielomian zerowy.
@@ -210,6 +198,36 @@ Poly PolyAddMonos(size_t count, const Mono monos[]) {
 
     // Przed zwróceniem konwertujemy wynik na typ coeff, o ile to możliwe.
     return ConvertToCoeff(&result);
+}
+
+Poly PolyAddMonos(size_t count, const Mono monos[]) {
+    if (count == 0 || monos == NULL)
+        return PolyZero();
+
+    // Robimy płytką kopię tablicy monos[] w celu jej posortowania.
+    Mono *monosCopy = SafeMonoMalloc(count);
+    size_t newCount = 0;
+    for (size_t i = 0; i < count; i++)
+        // Pomijamy jednomiany tożsamościowo równe zero.
+        if (!PolyIsZero(&monos[i].p))
+            monosCopy[newCount++] = monos[i];
+
+    return PolyOwnMonos(newCount, monosCopy);
+}
+
+Poly PolyCloneMonos(size_t count, const Mono monos[]) {
+    if (count == 0 || monos == NULL)
+        return PolyZero();
+
+    // Robimy głęboką kopię tablicy monos[] w celu jej posortowania.
+    Mono *monosCopy = SafeMonoMalloc(count);
+    size_t newCount = 0;
+    for (size_t i = 0; i < count; i++)
+        // Pomijamy jednomiany tożsamościowo równe zero.
+        if (!PolyIsZero(&monos[i].p))
+            monosCopy[newCount++] = MonoClone(&monos[i]);
+
+    return PolyOwnMonos(newCount, monosCopy);
 }
 
 Poly PolyMulByCoeff(const Poly *p, poly_coeff_t coeff) {
@@ -255,9 +273,7 @@ static Poly PolyMulNotCoeffs(const Poly *p, const Poly *q) {
     // jednomiany wielomianu q i sumujemy tak powstałe wyniki.
     for (size_t i = 0; i < p->size; i++) {
         Mono *iterationMonos = SafeMonoMalloc(q->size);
-
         Mono pMono = p->arr[i];
-        size_t index = 0;
 
         for (size_t j = 0; j < q->size; j++) {
             Mono qMono = q->arr[j];
@@ -266,14 +282,14 @@ static Poly PolyMulNotCoeffs(const Poly *p, const Poly *q) {
 
             // Dodatkowy warunek PolyIsZero() sprawdza, czy przy mnożeniu
             // współczynników nie doszło do przekroczenia zakresu zmiennej.
-            iterationMonos[index++] = PolyIsZero(&newPoly)
-                                      ? MonoFromPoly(&newPoly, 0)
-                                      : MonoFromPoly(&newPoly, newExp);
+            iterationMonos[j] = PolyIsZero(&newPoly)
+                                ? MonoFromPoly(&newPoly, 0)
+                                : MonoFromPoly(&newPoly, newExp);
         }
 
         // Przy każdej iteracji sumujemy wielomian powstały po przemnożeniu
         // jednego jednomianu z p przez wszystkie jednomiany z q.
-        Poly temp = {.size = q->size, .arr = iterationMonos};
+        Poly temp = PolyOwnMonos(q->size, iterationMonos);
         Poly oldResult = result;
         result = PolyAdd(&oldResult, &temp);
 
@@ -298,6 +314,90 @@ Poly PolyMul(const Poly *p, const Poly *q) {
     }
 
     return PolyMulNotCoeffs(p, q);
+}
+
+Poly PolyPow(const Poly *p, poly_exp_t n) {
+    if (n == 0)
+        return PolyFromCoeff(1);
+    else if (n == 1)
+        return PolyClone(p);
+
+    if (PolyIsZero(p))
+        return PolyZero();
+
+    if (PolyIsCoeff(p))
+        return PolyFromCoeff(fastPow(p->coeff, n));
+
+    Poly multiplier = PolyClone(p);
+    Poly result = PolyFromCoeff(1);
+
+    // Algorytm szybkiego potęgowania.
+    while (n > 0) {
+        if (n % 2 != 0) {
+            // Przemnożenie wyniku przez p.
+            Poly oldResult = result;
+            result = PolyMul(&oldResult, &multiplier);
+            PolyDestroy(&oldResult);
+        }
+
+        // Podniesienie mnożnika do kwadratu.
+        Poly oldMultiplier = multiplier;
+        multiplier = PolyMul(&oldMultiplier, &oldMultiplier);
+        PolyDestroy(&oldMultiplier);
+
+        n /= 2;
+    }
+
+    PolyDestroy(&multiplier);
+    return result;
+}
+
+/**
+ * Pomocnicza funkcja wykonująca operację składania wielomianów
+ * zawierająca dodatkową informację o indeksie aktualnej zmiennej.
+ * @param[in] p : wielomian @f$p@f$
+ * @param[in] k : liczba wielomianów do podstawienia
+ * @param[in] q : lista wielomianów do podstawienia
+ * @param[in] varIdx : indeks aktualnie rozpatrywanej zmiennej
+ * @return
+ */
+static Poly PolyComposeHelper(const Poly *p, size_t k, const Poly q[], size_t varIdx) {
+    if (PolyIsCoeff(p))
+        return PolyFromCoeff(p->coeff);
+
+    Poly result = PolyZero();
+
+    for (size_t i = 0; i < p->size; i++) {
+        Poly newPoly;
+
+        // Podstawienie odpowiedniego wielomianu za aktualną zmienną.
+        if (k > varIdx)
+            newPoly = PolyPow(&q[varIdx], MonoGetExp(&p->arr[i]));
+        else if (MonoGetExp(&p->arr[i]) == 0)
+            newPoly = PolyFromCoeff(1);
+        else
+            newPoly = PolyZero();
+
+        // Podstawienie pozostałych zmiennych aktualnego jednomianu.
+        Poly innerPoly = PolyComposeHelper(&p->arr[i].p, k, q, varIdx + 1);
+
+        Poly oldNewPoly = newPoly;
+        newPoly = PolyMul(&oldNewPoly, &innerPoly);
+
+        Poly oldResult = result;
+        result = PolyAdd(&oldResult, &newPoly);
+
+        PolyDestroy(&newPoly);
+        PolyDestroy(&innerPoly);
+        PolyDestroy(&oldNewPoly);
+        PolyDestroy(&oldResult);
+    }
+
+    return result;
+}
+
+Poly PolyCompose(const Poly *p, size_t k, const Poly q[]) {
+    return PolyComposeHelper(p, k, q, 0);
 }
 
 Poly PolyNeg(const Poly *p) {

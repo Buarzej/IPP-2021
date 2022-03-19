@@ -78,6 +78,76 @@ static void ErrorAtWrongValue(int lineIndex) {
 }
 
 /**
+ * Wypisuje błąd `COMPOSE WRONG PARAMETER` na standardowe wyjście błędów.
+ * @param[in] lineIndex : indeks wczytanej linii
+ */
+static void ErrorComposeWrongParameter(int lineIndex) {
+    fprintf(stderr, "ERROR %d COMPOSE WRONG PARAMETER\n", lineIndex);
+}
+
+/**
+ * Parsuje linię tekstu zawierającą komendę kalkulatora
+ * przyjmującą argument, wywołując odpowiednie polecenie.
+ * @param[in] string : wczytana linia tekstu
+ * @param[in] stack : stos
+ * @param[in] lineIndex : indeks wczytanej linii
+ */
+static void ParseArgumentCommand(char *string, Stack *stack, int lineIndex) {
+    if (strncmp(string, "DEG_BY", 6) == 0) {
+        if (string[6] != ' ' || !isdigit((int) string[7])) {
+            if (!isspace((int) string[6]) && string[6] != '\0')
+                ErrorWrongCommand(lineIndex);
+            else
+                ErrorDegByWrongVariable(lineIndex);
+        } else {
+            char *remaining;
+            errno = 0;
+            size_t argument = strtoul(&string[7], &remaining, 10);
+
+            if (remaining[0] != '\0' || errno == ERANGE)
+                ErrorDegByWrongVariable(lineIndex);
+            else if (!CalcDegBy(stack, argument))
+                ErrorStackUnderflow(lineIndex);
+        }
+    } else if (strncmp(string, "AT", 2) == 0) {
+        if (string[2] != ' ' ||
+            (!isdigit((int) string[3]) && string[3] != '-')) {
+            if (!isspace((int) string[2]) && string[2] != '\0')
+                ErrorWrongCommand(lineIndex);
+            else
+                ErrorAtWrongValue(lineIndex);
+        } else {
+            char *remaining;
+            errno = 0;
+            poly_coeff_t argument = strtol(&string[3], &remaining, 10);
+
+            if (remaining[0] != '\0' || errno == ERANGE)
+                ErrorAtWrongValue(lineIndex);
+            else if (!CalcAt(stack, argument))
+                ErrorStackUnderflow(lineIndex);
+        }
+    } else if (strncmp(string, "COMPOSE", 7) == 0) {
+        if (string[7] != ' ' || !isdigit((int) string[8])) {
+            if (!isspace((int) string[7]) && string[7] != '\0')
+                ErrorWrongCommand(lineIndex);
+            else
+                ErrorComposeWrongParameter(lineIndex);
+        } else {
+            char *remaining;
+            errno = 0;
+            size_t argument = strtoul(&string[8], &remaining, 10);
+
+            if (remaining[0] != '\0' || errno == ERANGE)
+                ErrorComposeWrongParameter(lineIndex);
+            else if (!CalcCompose(stack, argument))
+                ErrorStackUnderflow(lineIndex);
+        }
+    } else {
+        ErrorWrongCommand(lineIndex);
+    }
+}
+
+/**
  * Parsuje linię tekstu zawierającą komendę kalkulatora,
  * wywołując odpowiednie polecenie.
  * @param[in] string : wczytana linia tekstu
@@ -121,47 +191,15 @@ static void ParseCommand(char *string, Stack *stack, int lineIndex) {
     } else if (strcmp(string, "POP") == 0) {
         if (!CalcPop(stack))
             ErrorStackUnderflow(lineIndex);
-    } else if (strncmp(string, "DEG_BY", 6) == 0) {
-        if (string[6] != ' ' || !isdigit((int) string[7])) {
-            if (!isspace((int) string[6]) && string[6] != '\0')
-                ErrorWrongCommand(lineIndex);
-            else
-                ErrorDegByWrongVariable(lineIndex);
-        } else {
-            char *remaining;
-            errno = 0;
-            size_t argument = strtoul(&string[7], &remaining, 10);
-
-            if (remaining[0] != '\0' || errno == ERANGE)
-                ErrorDegByWrongVariable(lineIndex);
-            else if (!CalcDegBy(stack, argument))
-                ErrorStackUnderflow(lineIndex);
-        }
-    } else if (strncmp(string, "AT", 2) == 0) {
-        if (string[2] != ' ' ||
-            (!isdigit((int) string[3]) && string[3] != '-')) {
-            if (!isspace((int) string[2]) && string[2] != '\0')
-                ErrorWrongCommand(lineIndex);
-            else
-                ErrorAtWrongValue(lineIndex);
-        } else {
-            char *remaining;
-            errno = 0;
-            poly_coeff_t argument = strtol(&string[3], &remaining, 10);
-
-            if (remaining[0] != '\0' || errno == ERANGE)
-                ErrorAtWrongValue(lineIndex);
-            else if (!CalcAt(stack, argument))
-                ErrorStackUnderflow(lineIndex);
-        }
     } else {
-        ErrorWrongCommand(lineIndex);
+        // Komenda potencjalnie posiada argument.
+        ParseArgumentCommand(string, stack, lineIndex);
     }
 }
 
 /**
  * Główna funkcja kalkulatora wielomianów.
- * Zarządza wczytywaniem linii wejściowe oraz
+ * Zarządza wczytywaniem linii wejściowych oraz
  * parsuje wielomiany i wywołuje odpowiednie komendy.
  * @return kod wyjścia programu
  */
@@ -175,7 +213,7 @@ int main() {
 
     while (getlineSize != -1) {
         // strlen(buffer) != getlineSize wyklucza linie z '\0' wewnątrz.
-        if ((ssize_t) strlen(buffer) != getlineSize) {
+        if (strlen(buffer) != (size_t) getlineSize) {
             if (isStringCommand(buffer))
                 ErrorWrongCommand(lineIndex);
             else

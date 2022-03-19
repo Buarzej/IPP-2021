@@ -21,7 +21,7 @@ void CalcZero(Stack *stack);
  * @param[in] stack : stos
  * @return Czy operacja się powiodła?
  */
-bool CalcIsCoeff(Stack *stack);
+bool CalcIsCoeff(const Stack *stack);
 
 /**
  * Sprawdza, czy wielomian na wierzchu stosu jest tożsamościowo
@@ -30,7 +30,7 @@ bool CalcIsCoeff(Stack *stack);
  * @param[in] stack : stos
  * @return Czy operacja się powiodła?
  */
-bool CalcIsZero(Stack *stack);
+bool CalcIsZero(const Stack *stack);
 
 /**
  * Wstawia na stos kopię wielomianu z wierzchu.
@@ -82,7 +82,7 @@ bool CalcSub(Stack *stack);
  * @param[in] stack : stos
  * @return Czy operacja się powiodła?
  */
-bool CalcIsEq(Stack *stack);
+bool CalcIsEq(const Stack *stack);
 
 /**
  * Wypisuje na standardowe wyjście stopień wielomianu
@@ -91,7 +91,7 @@ bool CalcIsEq(Stack *stack);
  * @param[in] stack : stos
  * @return Czy operacja się powiodła?
  */
-bool CalcDeg(Stack *stack);
+bool CalcDeg(const Stack *stack);
 
 /**
  * Wypisuje na standardowe wyjście stopień wielomianu ze względu na zmienną
@@ -101,7 +101,7 @@ bool CalcDeg(Stack *stack);
  * @param[in] varIdx : indeks zmiennej
  * @return Czy operacja się powiodła?
  */
-bool CalcDegBy(Stack *stack, size_t varIdx);
+bool CalcDegBy(const Stack *stack, size_t varIdx);
 
 /**
  * Wylicza wartość wielomianu w punkcie @p x, usuwa wielomian
@@ -114,12 +114,22 @@ bool CalcDegBy(Stack *stack, size_t varIdx);
 bool CalcAt(Stack *stack, poly_coeff_t x);
 
 /**
+ * Zdejmuje z wierzchu stosu wielomian @f$p@f$ oraz wielomiany @f$q_{k - 1},
+ * q_{k - 2}, ..., q_0@f$ i umieszcza na stosie wynik operacji złożenia.
+ * Zwraca `true` lub `false`, w zależności czy operacja się powiodła.
+ * @param[in] stack : stos
+ * @param[in] k : liczba wielomianów do podstawienia
+ * @return Czy operacja się powiodła?
+ */
+bool CalcCompose(Stack *stack, size_t k);
+
+/**
  * Wypisuje na standardowe wyjście wielomian z wierzchu stosu.
  * Zwraca `true` lub `false`, w zależności czy operacja się powiodła.
  * @param[in] stack : stos
  * @return Czy operacja się powiodła?
  */
-bool CalcPrint(Stack *stack);
+bool CalcPrint(const Stack *stack);
 
 /**
  * Usuwa wielomian z wierzchu stosu.

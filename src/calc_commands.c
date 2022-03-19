@@ -8,13 +8,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "stack.h"
+#include "utilities.h"
 #include "calc_commands.h"
 
 void CalcZero(Stack *stack) {
     StackPush(stack, PolyZero());
 }
 
-bool CalcIsCoeff(Stack *stack) {
+bool CalcIsCoeff(const Stack *stack) {
     if (StackIsEmpty(stack))
         return false;
 
@@ -24,7 +25,7 @@ bool CalcIsCoeff(Stack *stack) {
     return true;
 }
 
-bool CalcIsZero(Stack *stack) {
+bool CalcIsZero(const Stack *stack) {
     if (StackIsEmpty(stack))
         return false;
 
@@ -96,7 +97,7 @@ bool CalcSub(Stack *stack) {
     return true;
 }
 
-bool CalcIsEq(Stack *stack) {
+bool CalcIsEq(const Stack *stack) {
     if (!StackHasNItems(stack, 2))
         return false;
 
@@ -106,7 +107,7 @@ bool CalcIsEq(Stack *stack) {
     return true;
 }
 
-bool CalcDeg(Stack *stack) {
+bool CalcDeg(const Stack *stack) {
     if (StackIsEmpty(stack))
         return false;
 
@@ -115,7 +116,7 @@ bool CalcDeg(Stack *stack) {
     return true;
 }
 
-bool CalcDegBy(Stack *stack, size_t varIdx) {
+bool CalcDegBy(const Stack *stack, size_t varIdx) {
     if (StackIsEmpty(stack))
         return false;
 
@@ -135,7 +136,31 @@ bool CalcAt(Stack *stack, poly_coeff_t x) {
     return true;
 }
 
-bool CalcPrint(Stack *stack) {
+bool CalcCompose(Stack *stack, size_t k) {
+    if (StackIsEmpty(stack))
+        return false;
+    Poly p = StackPop(stack);
+
+    if (!StackHasNItems(stack, k)) {
+        StackPush(stack, p);
+        return false;
+    }
+
+    Poly *q = SafePolyMalloc(k);
+    for (size_t i = 1; i <= k; i++)
+        q[k - i] = StackPop(stack);
+
+    StackPush(stack, PolyCompose(&p, k, q));
+
+    PolyDestroy(&p);
+    for (size_t i = 0; i < k; i++)
+        PolyDestroy(&q[i]);
+    free(q);
+
+    return true;
+}
+
+bool CalcPrint(const Stack *stack) {
     if (StackIsEmpty(stack))
         return false;
 

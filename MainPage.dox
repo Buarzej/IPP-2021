@@ -13,4 +13,7 @@ rzadkich wielu zmiennych.
 Druga część zadania polega na dodaniu funkcjonalności kalkulatora wielomianów
 parsującego wielomiany z wejścia i wykonującego działania na nich.
 
+Trzecia część zadania dodaje operacje potęgowania i składania wielomianów oraz
+różne warianty funkcji tworzenia wielomianów z listy jednomianów.
+
 */
