@@ -1,9 +1,5 @@
 # IPP-2021
 
-Zadanie z przedmiotu "Indywidualny projekt programistyczny" realizowanego na MIM UW w latach 2020/2021:
+A calculator that performs advanced calculations and operations on multivariable polynomials. The project uses the Doxygen documentation system.
 
-Tegoroczne duże zadanie polega na zaimplementowaniu operacji na wielomianach
-rzadkich wielu zmiennych.
-
-Druga część zadania polega na dodaniu funkcjonalności kalkulatora wielomianów
-parsującego wielomiany z wejścia i wykonującego działania na nich.
+_This project was made as part of the Individual Programming Project at the University of Warsaw 2020/2021. Because of this, the project is not fully translated to English and parts of it are in Polish._
