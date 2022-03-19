@@ -1,4 +1,4 @@
-# IPP-2021
+# Multivariable Polynomials (IPP 2020/2021)
 
 A calculator that performs advanced calculations and operations on multivariable polynomials. The project uses the Doxygen documentation system.
 
